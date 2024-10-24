@@ -12,7 +12,7 @@
 
     <LinearLayout
         android:id="@+id/LinearLayoutDisplay"
-        android:layout_width="200dp"
+        android:layout_width="509dp"
         android:layout_height="match_parent"
         android:orientation="vertical">
 
@@ -20,8 +20,8 @@
             android:id="@+id/userIdTextView"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:textSize="18sp"
-            android:text="User ID: Not logged in"/>
+            android:text="User ID: Not logged in"
+            android:textSize="18sp" />
 
         <GridView
             android:id="@+id/gridView"
@@ -36,8 +36,8 @@
             android:id="@+id/eventSwitch"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Update using events"
-            android:layout_marginTop="8dp"/>
+            android:layout_marginTop="8dp"
+            android:text="Update using events" />
     </LinearLayout>
 
     <RelativeLayout
@@ -111,16 +111,6 @@
             android:layout_alignParentLeft="true"
             android:layout_below="@id/buttonLogin"
             android:text="Logout" />
-
-        <TextView
-            android:id="@+id/balanceTextView"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_below="@id/buttonLogout"
-            android:layout_alignParentLeft="true"
-            android:layout_marginTop="16dp"
-            android:text="Balance: $0.00"
-            android:textSize="16sp"/>
 
     </RelativeLayout>
 

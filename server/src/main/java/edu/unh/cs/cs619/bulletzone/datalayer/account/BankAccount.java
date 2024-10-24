@@ -7,11 +7,6 @@ public class BankAccount extends OwnableEntity {
 
     public double getBalance() { return balance; }
 
-    public BankAccount(int userId) {
-        super(new BankAccountRecord());
-        this.balance = 1000.0; // Initial balance of 1000 credits
-    }
-
     //----------------------------------END OF PUBLIC METHODS--------------------------------------
     BankAccount(BankAccountRecord rec) {
         super(rec);

@@ -1,9 +1,11 @@
 package edu.unh.cs.cs619.bulletzone;
 
 import android.content.Context;
+import android.content.Intent;
 import android.os.SystemClock;
 import androidx.appcompat.app.AppCompatActivity;
 import android.os.Bundle;
+import android.util.Log;
 import android.widget.EditText;
 import android.widget.TextView;
 
@@ -61,13 +63,11 @@ public class AuthenticateActivity extends AppCompatActivity {
         String username = username_editText.getText().toString();
         String password = password_editText.getText().toString();
 
-        ResultWrapper result = controller.register(username, password);
+        ResultWrapper<Long> result = controller.register(username, password);
 
         if (result.isSuccess()) {
-            setStatus("Registration successful. User ID: " + result.getUserId());
-            // You might want to automatically log in the user here
-            userID = result.getUserId();
-            // Do other post-registration things here
+            setStatus("Registration successful.");
+            // Optionally, you can automatically log in the user here
         } else {
             setStatus("Registration failed: " + result.getMessage());
         }
@@ -82,18 +82,38 @@ public class AuthenticateActivity extends AppCompatActivity {
         String username = username_editText.getText().toString();
         String password = password_editText.getText().toString();
 
-        ResultWrapper result = controller.login(username, password);
-        if (result.isSuccess()) {
-            userID = result.getUserId();
-            setStatus("Login successful. User ID: " + userID);
-            // Do other login things here
-        } else {
-            setStatus("Login failed: " + result.getMessage());
+        try {
+            ResultWrapper<Long> result = controller.login(username, password);
+
+            if (result.isSuccess()) {
+                Long userId = result.getResult();
+                setStatus("Login successful. User ID: " + userId);
+                onLoginSuccess(userId);
+            } else {
+                setStatus("Login failed: " + result.getMessage());
+            }
+        } catch (Exception e) {
+            setStatus("An unexpected error occurred: " + e.getMessage());
+            e.printStackTrace(); // Log the error
         }
+    }
+
+    @UiThread
+    public void onLoginSuccess(Long userId) {
+        Log.d("AuthenticateActivity", "onLoginSuccess called with userId: " + userId);
+
+        // Start the main game activity
+        Intent intent = new Intent(this, MenuActivity_.class);
+        intent.putExtra("USER_ID", userId);
+        Log.d("AuthenticateActivity", "Starting ClientActivity_");
+        startActivity(intent);
+        Log.d("AuthenticateActivity", "ClientActivity_ started");
+        finish(); // Close the login activity
     }
 
     @UiThread
     protected void setStatus(String message) {
         status_message.setText(message);
+        Log.e("AuthenticateActivity", message);
     }
 }

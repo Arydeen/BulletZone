@@ -67,7 +67,6 @@ public class EventHistory {
     private EventHistory() {
         history = new ArrayList<>();
         EventBus.getDefault().register(this);
-
     }
 
     /**

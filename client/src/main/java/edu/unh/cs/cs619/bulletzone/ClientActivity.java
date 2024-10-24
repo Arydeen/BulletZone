@@ -30,8 +30,10 @@ import edu.unh.cs.cs619.bulletzone.rest.BulletZoneRestClient;
 import edu.unh.cs.cs619.bulletzone.rest.GridPollerTask;
 import edu.unh.cs.cs619.bulletzone.rest.GridUpdateEvent;
 import edu.unh.cs.cs619.bulletzone.ui.GridAdapter;
+import edu.unh.cs.cs619.bulletzone.util.ClientActivityShakeDriver;
 import edu.unh.cs.cs619.bulletzone.util.GridWrapper;
 import edu.unh.cs.cs619.bulletzone.AuthenticateActivity;
+import edu.unh.cs.cs619.bulletzone.util.ClientActivityShakeDriver;
 
 @EActivity(R.layout.activity_client)
 public class ClientActivity extends Activity {
@@ -50,9 +52,6 @@ public class ClientActivity extends Activity {
     @ViewById
     protected TextView userIdTextView;
 
-    @ViewById
-    protected TextView balanceTextView;
-
     @NonConfigurationInstance
     @Bean
     GridPollerTask gridPollTask;
@@ -63,6 +62,11 @@ public class ClientActivity extends Activity {
     @Bean
     BZRestErrorhandler bzRestErrorhandler;
 
+    @Bean
+    TankEventController tankEventController;
+
+    ClientActivityShakeDriver shakeDriver;
+
     /**
      * Remote tank identifier
      */
@@ -72,6 +76,15 @@ public class ClientActivity extends Activity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+
+        // Initializes the shake driver / listener and defines what action to take when device is shaken
+        shakeDriver = new ClientActivityShakeDriver(this, new ClientActivityShakeDriver.OnShakeListener() {
+            @Override
+            public void onShake() {
+                onButtonFire();
+            }
+        });
+
         Log.e(TAG, "onCreate");
     }
 
@@ -79,6 +92,9 @@ public class ClientActivity extends Activity {
     protected void onDestroy() {
         super.onDestroy();
         EventBus.getDefault().unregister(gridEventHandler);
+
+        //Un-attaches the shakeDriver and listener when activity is destroyed
+        shakeDriver.stop();
         Log.e(TAG, "onDestroy");
     }
 
@@ -99,53 +115,29 @@ public class ClientActivity extends Activity {
         }
     };
 
-
     @AfterViews
     protected void afterViewInjection() {
         Log.d(TAG, "afterViewInjection");
         userId = getIntent().getLongExtra("USER_ID", -1);
+        tankId = getIntent().getLongExtra("TANK_ID", -1);
         if (userId != -1) {
             userIdTextView.setText("User ID: " + userId);
-            fetchAndUpdateBalance();  // Add this line
         } else {
             userIdTextView.setText("User ID: Not logged in");
-            updateBalanceUI(null);  // Add this line to clear the balance
         }
-        joinAsync();
         SystemClock.sleep(500);
+        // Set the TankID to be used when determining if it is the user's tank
+        mGridAdapter.setTankId(tankId);
         gridView.setAdapter(mGridAdapter);
     }
 
-    @Background
-    void fetchAndUpdateBalance() {
-        try {
-            Double balance = restClient.getBalance(userId);
-            Log.d(TAG, "Fetched balance: " + balance);  // Add this log
-            updateBalanceUI(balance);
-        } catch (Exception e) {
-            Log.e(TAG, "Error fetching balance", e);
-            updateBalanceUI(null);
-        }
-    }
 
     @AfterInject
     void afterInject() {
         Log.d(TAG, "afterInject");
         restClient.setRestErrorHandler(bzRestErrorhandler);
         EventBus.getDefault().register(gridEventHandler);
-    }
-
-    @Background
-    void joinAsync() {
-        try {
-            tankId = restClient.join().getResult();
-            gridPollTask.doPoll();
-            SystemClock.sleep(500); //Wait for poller to update initial board
-            eventProcessor.setBoard(mGridAdapter.getBoard()); //Set initial board to eventprocessor
-            eventProcessor.start(); //Subscribe to eventbus to start posting events
-        } catch (Exception e) {
-            Log.e(TAG, "Error joining game", e);
-        }
+        gridPollTask.doPoll(eventProcessor);
     }
 
     public void updateGrid(GridWrapper gw) {
@@ -164,11 +156,27 @@ public class ClientActivity extends Activity {
         }
     }
 
+    private int lastPressedButtonId = -1;
+
+    private boolean onePointTurn(int currentButtonId) {
+        // Check if the previous and current directions are 90-degree turns
+        if ((lastPressedButtonId == R.id.buttonUp && currentButtonId == R.id.buttonLeft) ||
+                (lastPressedButtonId == R.id.buttonUp && currentButtonId == R.id.buttonRight) ||
+                (lastPressedButtonId == R.id.buttonDown && currentButtonId == R.id.buttonLeft) ||
+                (lastPressedButtonId == R.id.buttonDown && currentButtonId == R.id.buttonRight) ||
+                (lastPressedButtonId == R.id.buttonLeft && currentButtonId == R.id.buttonUp) ||
+                (lastPressedButtonId == R.id.buttonLeft && currentButtonId == R.id.buttonDown) ||
+                (lastPressedButtonId == R.id.buttonRight && currentButtonId == R.id.buttonUp) ||
+                (lastPressedButtonId == R.id.buttonRight && currentButtonId == R.id.buttonDown)) {
+            return true;
+        }
+        return false;
+    }
+
     @Click({R.id.buttonUp, R.id.buttonDown, R.id.buttonLeft, R.id.buttonRight})
     protected void onButtonMove(View view) {
         final int viewId = view.getId();
         byte direction = 0;
-
         switch (viewId) {
             case R.id.buttonUp:
                 direction = 0;
@@ -186,36 +194,35 @@ public class ClientActivity extends Activity {
                 Log.e(TAG, "Unknown movement button id: " + viewId);
                 break;
         }
-        this.moveAsync(tankId, direction);
-    }
 
-    @Background
-    void moveAsync(long tankId, byte direction) {
-        restClient.move(tankId, direction);
-    }
+        if (lastPressedButtonId != -1 && onePointTurn(viewId)) {
+            Log.d(TAG, "One-point turn detected: from " + lastPressedButtonId + " to " + viewId);
+            this.tankEventController.turnAsync(tankId, direction);
+        } else {
+            this.tankEventController.moveAsync(tankId, direction);
+        }
+        lastPressedButtonId = viewId;
 
-    @Background
-    void turnAsync(long tankId, byte direction) {
-        restClient.turn(tankId, direction);
     }
 
     @Click(R.id.buttonFire)
-    @Background
     protected void onButtonFire() {
-        restClient.fire(tankId);
+        tankEventController.fire(tankId);
     }
 
     @Click(R.id.buttonLeave)
     void leaveGame() {
         Log.d(TAG, "leaveGame() called, tank ID: " + tankId);
-        leaveGameAsync();
+        BackgroundExecutor.cancelAll("grid_poller_task", true);
+        tankEventController.leaveGameAsync(tankId);
+        logoutUI();
     }
 
     @Background
-    void leaveGameAsync() {
+    void leaveAsync(long tankId) {
+        Log.d(TAG, "Leave called, tank ID: " + tankId);
         BackgroundExecutor.cancelAll("grid_poller_task", true);
         restClient.leave(tankId);
-        logoutUI();
     }
 
     @Click(R.id.buttonLogin)
@@ -230,13 +237,6 @@ public class ClientActivity extends Activity {
         logoutUI();
     }
 
-    @Background
-    void leaveAsync(long tankId) {
-        Log.d(TAG, "Leave called, tank ID: " + tankId);
-        BackgroundExecutor.cancelAll("grid_poller_task", true);
-        restClient.leave(tankId);
-    }
-
     @UiThread
     void logoutUI() {
         Log.d(TAG, "logoutUI() called");
@@ -248,16 +248,5 @@ public class ClientActivity extends Activity {
         intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
         startActivity(intent);
         finish();
-    }
-
-    @UiThread
-    void updateBalanceUI(Double balance) {
-        if (balanceTextView != null) {
-            if (balance != null) {
-                balanceTextView.setText(String.format("Balance: $%.2f", balance));
-            } else {
-                balanceTextView.setText("Balance: Unavailable");
-            }
-        }
     }
 }

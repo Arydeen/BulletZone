@@ -4,6 +4,7 @@ import android.os.SystemClock;
 import android.text.style.UpdateAppearance;
 import android.util.Log;
 
+import edu.unh.cs.cs619.bulletzone.events.GameEventProcessor;
 import edu.unh.cs.cs619.bulletzone.events.UpdateBoardEvent;
 
 import org.androidannotations.annotations.Background;
@@ -39,16 +40,17 @@ public class GridPollerTask {
     @Background(id = "grid_poller_task")
     //Removed updating by changing whole grid to guarantee only
     //updating by events
-    public void doPoll() {
+    public void doPoll(GameEventProcessor eventProcessor) {
         //Update whole grid once using initial layout
         GridWrapper grid = restClient.grid();
         onGridUpdate(grid);
         previousTimeStamp = grid.getTimeStamp();
+        eventProcessor.setBoard(grid.getGrid());
+        eventProcessor.start();
         while (true) {
              //Update using events after that
-
-                Log.d("Poller", "Updating board using events");
-                Log.d("PollerTS", "Previous Timestamp: " + previousTimeStamp);
+//                Log.d("Poller", "Updating board using events");
+//                Log.d("PollerTS", "Previous Timestamp: " + previousTimeStamp);
                 GameEventCollectionWrapper events = restClient.events(previousTimeStamp);
                 boolean haveEvents = false;
                 for (GameEvent event : events.getEvents()) {

@@ -5,10 +5,13 @@ import android.content.Context;
 import org.androidannotations.annotations.AfterInject;
 import org.androidannotations.annotations.EBean;
 import org.androidannotations.rest.spring.annotations.RestService;
-import org.springframework.web.client.RestClientException;
+import org.springframework.http.HttpStatus;
+import org.springframework.web.client.HttpClientErrorException;
 
 import edu.unh.cs.cs619.bulletzone.rest.BulletZoneRestClient;
+import edu.unh.cs.cs619.bulletzone.util.BooleanWrapper;
 import edu.unh.cs.cs619.bulletzone.util.LongWrapper;
+
 import edu.unh.cs.cs619.bulletzone.util.ResultWrapper;
 
 @EBean
@@ -38,17 +41,23 @@ public class AuthenticationController {
      * @param username Username provided by user.
      * @param password Password for account provided by user.
      */
-    public ResultWrapper login(String username, String password) {
+    public ResultWrapper<Long> login(String username, String password) {
         try {
             LongWrapper result = restClient.login(username, password);
-            if (result == null) {
-                return new ResultWrapper(false, "Server error: No response", null);
+            long userId = result.getResult();
+            if (userId >= 0) {
+                return new ResultWrapper<>(true, "Login successful", userId);
+            } else {
+                return new ResultWrapper<>(false, "Invalid username or password", null);
             }
-            return new ResultWrapper(true, "Login successful", result.getResult());
-        } catch (RestClientException e) {
-            return new ResultWrapper(false, "Network error: " + e.getMessage(), null);
+        } catch (HttpClientErrorException e) {
+            if (e.getStatusCode() == HttpStatus.UNAUTHORIZED) {
+                return new ResultWrapper<>(false, "Invalid username or password", null);
+            } else {
+                return new ResultWrapper<>(false, "Login failed: " + e.getMessage(), null);
+            }
         } catch (Exception e) {
-            return new ResultWrapper(false, "Unexpected error: " + e.getMessage(), null);
+            return new ResultWrapper<>(false, "Unexpected error: " + e.getMessage(), null);
         }
     }
 
@@ -58,17 +67,22 @@ public class AuthenticationController {
      * @param username New username provided by user.
      * @param password Password for new account provided by user.
      */
-    public ResultWrapper register(String username, String password) {
+    public ResultWrapper<Long> register(String username, String password) {
         try {
-            ResultWrapper result = restClient.register(username, password);
-            if (result == null) {
-                return new ResultWrapper(false, "Server error: No response", null);
+            BooleanWrapper result = restClient.register(username, password);
+            if (result.isResult()) {
+                return new ResultWrapper<>(true, "Registration successful", null);
+            } else {
+                return new ResultWrapper<>(false, "Registration failed", null);
             }
-            return result;
-        } catch (RestClientException e) {
-            return new ResultWrapper(false, "Network error: " + e.getMessage(), null);
+        } catch (HttpClientErrorException e) {
+            if (e.getStatusCode() == HttpStatus.BAD_REQUEST) {
+                return new ResultWrapper<>(false, "User already exists", null);
+            } else {
+                return new ResultWrapper<>(false, "Registration failed: " + e.getMessage(), null);
+            }
         } catch (Exception e) {
-            return new ResultWrapper(false, "Unexpected error: " + e.getMessage(), null);
+            return new ResultWrapper<>(false, "Unexpected error: " + e.getMessage(), null);
         }
     }
 

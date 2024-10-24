@@ -59,7 +59,6 @@ public class BankAccountRepository implements OwnableEntityRepository {
             return null;
 
         BankAccountRecord rec = new BankAccountRecord();
-        rec.credits = 1000.0; // Set initial balance to 1000 credits
         BankAccount newAccount;
         try {
             // Create base item

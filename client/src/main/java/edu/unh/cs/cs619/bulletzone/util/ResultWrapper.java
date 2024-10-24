@@ -1,18 +1,22 @@
 package edu.unh.cs.cs619.bulletzone.util;
 
-public class ResultWrapper {
+import java.io.Serializable;
+
+/**
+ * Created by simon on 10/1/14.
+ */
+public class ResultWrapper<T> implements Serializable {
     private boolean success;
     private String message;
-    private Long userId;
+    private T result;
 
     public ResultWrapper() {
-        // Default constructor
     }
 
-    public ResultWrapper(boolean success, String message, Long userId) {
+    public ResultWrapper(boolean success, String message, T result) {
         this.success = success;
         this.message = message;
-        this.userId = userId;
+        this.result = result;
     }
 
     public boolean isSuccess() {
@@ -31,11 +35,16 @@ public class ResultWrapper {
         this.message = message;
     }
 
-    public Long getUserId() {
-        return userId;
+    public T getResult() {
+        return this.result;
     }
 
-    public void setUserId(Long userId) {
-        this.userId = userId;
+    public void setResult(T result) {
+        this.result = result;
+    }
+
+    // Convenience method for getting user ID when T is Long
+    public Long getUserId() {
+        return (result instanceof Long) ? (Long) result : null;
     }
 }

@@ -12,14 +12,27 @@ import edu.unh.cs.cs619.bulletzone.rest.GridUpdateEvent;
 public class GameEventProcessor {
     private int[][] board;
 
+    public EventBus eb = null;
+
     public void setBoard(int[][] newBoard) { board = newBoard; }
 
     public void start() {
-        EventBus.getDefault().register(this);
+//        EventBus.getDefault().register(this);
+        if (eb == null) {
+            EventBus.getDefault().register(this);
+        } else {
+            eb.register(this);
+        }
+
     }
 
     public void stop() {
-        EventBus.getDefault().unregister(this);
+//        EventBus.getDefault().unregister(this);
+        if (eb == null) {
+            EventBus.getDefault().unregister(this);
+        } else {
+            eb.unregister(this);
+        }
     }
 
     @Subscribe
