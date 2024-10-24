@@ -6,7 +6,9 @@ import org.androidannotations.rest.spring.annotations.Path;
 import org.androidannotations.rest.spring.annotations.Post;
 import org.androidannotations.rest.spring.annotations.Put;
 import org.androidannotations.rest.spring.annotations.Rest;
+import org.androidannotations.rest.spring.annotations.RestService.*;
 import org.androidannotations.rest.spring.api.RestClientErrorHandling;
+import org.androidannotations.rest.spring.api.RestClientHeaders.*;
 import org.springframework.http.converter.StringHttpMessageConverter;
 import org.springframework.http.converter.json.MappingJackson2HttpMessageConverter;
 import org.springframework.web.client.RestClientException;
@@ -23,13 +25,13 @@ import edu.unh.cs.cs619.bulletzone.util.ResultWrapper;
  * Created by simon on 10/1/14.
  */
 
-//@Rest(rootUrl = "http://10.0.0.53:8080/games",
+@Rest(rootUrl = "http://stman1.cs.unh.edu:61902/games",
 //@Rest(rootUrl = "http://stman1.cs.unh.edu:6192/games",
-@Rest(rootUrl = "http://stman1.cs.unh.edu:61912/games",
-        converters = {StringHttpMessageConverter.class, MappingJackson2HttpMessageConverter.class})
+//@Rest(rootUrl = "http://stman1.cs.unh.edu:61912/games",
+        converters = {StringHttpMessageConverter.class, MappingJackson2HttpMessageConverter.class}
         // TODO: disable intercepting and logging
         // , interceptors = { HttpLoggerInterceptor.class }
-
+)
 public interface BulletZoneRestClient extends RestClientErrorHandling {
     void setRootUrl(String rootUrl);
 
@@ -37,26 +39,32 @@ public interface BulletZoneRestClient extends RestClientErrorHandling {
     LongWrapper join() throws RestClientException;
 
     @Get("")
-    GridWrapper grid() throws RestClientException;
+    GridWrapper grid();
 
     @Get("/events/{sinceTime}")
-    GameEventCollectionWrapper events(@Path long sinceTime) throws RestClientException;
+    GameEventCollectionWrapper events(@Path("sinceTime") long sinceTime);
 
     @Put("/account/register/{username}/{password}")
-    ResultWrapper register(@Path String username, @Path String password) throws RestClientException;
+    BooleanWrapper register(@Path String username, @Path String password);
 
     @Put("/account/login/{username}/{password}")
-    LongWrapper login(@Path String username, @Path String password) throws RestClientException;
+    LongWrapper login(@Path String username, @Path String password);
 
     @Put("/{tankId}/move/{direction}")
-    BooleanWrapper move(@Path long tankId, @Path byte direction) throws RestClientException;
+    BooleanWrapper move(@Path long tankId, @Path byte direction);
 
     @Put("/{tankId}/turn/{direction}")
-    BooleanWrapper turn(@Path long tankId, @Path byte direction) throws RestClientException;
+    BooleanWrapper turn(@Path long tankId, @Path byte direction);
 
     @Put("/{tankId}/fire/1")
-    BooleanWrapper fire(@Path long tankId) throws RestClientException;
+    BooleanWrapper fire(@Path long tankId);
 
     @Delete("/{tankId}/leave")
-    BooleanWrapper leave(@Path long tankId) throws RestClientException;
+    BooleanWrapper leave(@Path long tankId);
+
+    @Get("/account/balance/{userId}")
+    Double getBalance(@Path("userId") long userId) throws RestClientException;
+
+    @Put("/account/balance/{userId}/deduct/{amount}")
+    BooleanWrapper deductBalance(@Path("userId") long userId, @Path("amount") double amount);
 }

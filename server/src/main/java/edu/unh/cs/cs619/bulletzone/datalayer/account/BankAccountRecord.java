@@ -13,40 +13,43 @@ public class BankAccountRecord extends EntityRecord {
 
     BankAccountRecord() {
         super(EntityType.BankAccount);
-        credits = 0;
+        credits = 1000.0; // Set initial balance in constructor
     }
 
-    BankAccountRecord(ResultSet itemResult){
+    BankAccountRecord(ResultSet itemResult) {
         super(itemResult);
         try {
             credits = itemResult.getDouble("Credits");
+            if (credits == 0) {
+                // If loaded from DB with 0 credits, set initial balance
+                credits = 1000.0;
+            }
         } catch (SQLException e) {
+            credits = 1000.0; // Set default balance even if DB read fails
             throw new IllegalStateException("Unable to extract data from bank account result set", e);
         }
-    }
-
-    String getInsertString() {
-        return " INSERT INTO BankAccount ( EntityID, Credits )\n" +
-                "    VALUES (" + getID() + ", " + credits + "); ";
     }
 
     @Override
     public void insertInto(Connection dataConnection) throws SQLException {
         super.insertInto(dataConnection);
-        PreparedStatement accountStatement = dataConnection.prepareStatement(getInsertString());
-
-        int affectedRows = accountStatement.executeUpdate();
-        if (affectedRows == 0)
-            throw new SQLException("Creating BankAccount record failed.");
+        String insertQuery = "INSERT INTO BankAccount (EntityID, Credits) VALUES (?, ?)";
+        try (PreparedStatement accountStatement = dataConnection.prepareStatement(insertQuery)) {
+            accountStatement.setInt(1, getID());
+            accountStatement.setDouble(2, credits);
+            int affectedRows = accountStatement.executeUpdate();
+            if (affectedRows == 0) {
+                throw new SQLException("Creating BankAccount record failed.");
+            }
+        }
     }
 
     static boolean update(Connection dataConnection, int accountID, double amount) throws SQLException {
-        PreparedStatement updateStatement = dataConnection.prepareStatement(
-                "UPDATE BankAccount SET Credits=" + amount + " WHERE EntityID=" + accountID + "; ");
-        if (updateStatement.executeUpdate() == 0) {
-            dataConnection.close();
-            return false; //nothing deleted
+        String updateQuery = "UPDATE BankAccount SET Credits=? WHERE EntityID=?";
+        try (PreparedStatement updateStatement = dataConnection.prepareStatement(updateQuery)) {
+            updateStatement.setDouble(1, amount);
+            updateStatement.setInt(2, accountID);
+            return updateStatement.executeUpdate() > 0;
         }
-        return true;
     }
 }

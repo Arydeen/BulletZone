@@ -183,7 +183,7 @@ public class BankAccountRepository implements OwnableEntityRepository {
      * at time of initialization.
      *
      * @param bzData        reference to BulletZoneData class to use for SQL queries
-    */
+     */
     public void refresh(BulletZoneData bzData) {
         data = bzData;
         accountMap.clear();
@@ -261,7 +261,7 @@ public class BankAccountRepository implements OwnableEntityRepository {
         try {
             dataConnection.setAutoCommit(false);
             if (!BankAccountRecord.update(dataConnection, sourceAccountID,source.getBalance() - amount)
-               || !BankAccountRecord.update(dataConnection, targetAccountID, dest.getBalance() + amount)) {
+                    || !BankAccountRecord.update(dataConnection, targetAccountID, dest.getBalance() + amount)) {
                 dataConnection.rollback();
                 return false; //nothing changed
             }
@@ -299,7 +299,7 @@ public class BankAccountRepository implements OwnableEntityRepository {
             // Read accounts that aren't deleted
             ResultSet itemResult = statement.executeQuery(
                     "SELECT * FROM AccountTransferHistory a WHERE a.DestBankAccountID = " + accountID +
-                             " OR a.SourceBankAccountID = " + accountID);
+                            " OR a.SourceBankAccountID = " + accountID);
             while (itemResult.next()) {
                 AccountTransferHistoryRecord rec = new AccountTransferHistoryRecord(itemResult);
                 hist.add(rec);

@@ -1,6 +1,7 @@
 package edu.unh.cs.cs619.bulletzone.datalayer.core;
 
 public class Entity {
+    protected EntityRecord record;
     protected int entityID;
     protected int statusID;
     protected final EntityType entityType;

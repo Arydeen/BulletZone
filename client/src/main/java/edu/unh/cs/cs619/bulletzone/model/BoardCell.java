@@ -2,6 +2,10 @@ package edu.unh.cs.cs619.bulletzone.model;
 
 import edu.unh.cs.cs619.bulletzone.R;
 
+/**
+ * Template class for all simulation board, board cell.
+ * Holds information for the Simboard about the type of cell, its position, and its rawValue from the server
+ */
 public class BoardCell {
     protected int resourceID; /// The resource ID for the image to display
     protected int rawValue; /// The value as represented on the server

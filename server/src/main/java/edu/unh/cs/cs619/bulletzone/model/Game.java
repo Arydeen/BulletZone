@@ -22,6 +22,7 @@ public final class Game {
 
     private final ConcurrentMap<Long, Tank> tanks = new ConcurrentHashMap<>();
     private final ConcurrentMap<String, Long> playersIP = new ConcurrentHashMap<>();
+//    private GameBoard gameBoard;
 
     public Game() {
         this.id = 0;
@@ -107,4 +108,12 @@ public final class Game {
 
         return grid;
     }
+
+//    public GameBoard getGameBoard() {
+//        return gameBoard;
+//    }
+//
+//    public void setGameBoard(GameBoard gameBoard) {
+//        this.gameBoard = gameBoard;
+//    }
 }

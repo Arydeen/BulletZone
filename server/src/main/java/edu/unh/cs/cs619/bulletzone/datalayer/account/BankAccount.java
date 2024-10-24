@@ -1,6 +1,7 @@
 package edu.unh.cs.cs619.bulletzone.datalayer.account;
 
 import edu.unh.cs.cs619.bulletzone.datalayer.permission.OwnableEntity;
+import edu.unh.cs.cs619.bulletzone.datalayer.core.EntityRecord;
 
 public class BankAccount extends OwnableEntity {
     protected double balance;
@@ -12,19 +13,38 @@ public class BankAccount extends OwnableEntity {
         this.balance = 1000.0; // Initial balance of 1000 credits
     }
 
-    //----------------------------------END OF PUBLIC METHODS--------------------------------------
     BankAccount(BankAccountRecord rec) {
         super(rec);
-        balance = rec.credits;
+        if (rec != null) {
+            this.balance = rec.credits;
+            if (this.balance == 0) {
+                this.balance = 1000.0;
+                rec.credits = this.balance;
+            }
+        } else {
+            this.balance = 1000.0;
+        }
     }
 
     /**
      * Modifies the credit balance for the account
      * @param amount Positive or negative amount to add to the credit balance
-     * @return true if successful (cannot be false, currently)
+     * @return true if successful
      */
-    boolean modifyBalance(double amount) {
+    public boolean modifyBalance(double amount) {
         balance += amount;
+        BankAccountRecord record = (BankAccountRecord) getRecord();
+        if (record != null) {
+            record.credits = balance;
+        }
         return true;
+    }
+
+    /**
+     * Gets the underlying record for this account
+     * @return The BankAccountRecord associated with this account
+     */
+    protected BankAccountRecord getRecord() {
+        return (BankAccountRecord) record;
     }
 }

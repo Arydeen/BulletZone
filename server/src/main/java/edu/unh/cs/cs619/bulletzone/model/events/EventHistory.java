@@ -9,7 +9,7 @@ import java.util.Collection;
 
 //This class is adapted from group Alpha's project from 2020, courtesy Gersi Doko
 public class EventHistory {
-    private final int millisToKeepHistory = 30000; //30 seconds
+    private final int millisToKeepHistory = 120000; //120 seconds - 2 Minutes
     private final ArrayList<GameEvent> history;
     private static EventHistory instance = null;
 
@@ -67,7 +67,6 @@ public class EventHistory {
     private EventHistory() {
         history = new ArrayList<>();
         EventBus.getDefault().register(this);
-
     }
 
     /**

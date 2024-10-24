@@ -108,7 +108,7 @@ public class BulletZoneData {
         initialize(getConnection());
     }
 
-     /**
+    /**
      * Lists the names of all tables in the currently open database to System.out, one per line.
      * This is intended to be a debugging method only.
      */

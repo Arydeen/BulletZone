@@ -1,68 +1,124 @@
 package edu.unh.cs.cs619.bulletzone.repository;
 
 import org.springframework.stereotype.Component;
-
-import java.util.Random;
-import java.util.Timer;
-import java.util.TimerTask;
-import java.util.concurrent.atomic.AtomicLong;
-
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import edu.unh.cs.cs619.bulletzone.datalayer.BulletZoneData;
+import edu.unh.cs.cs619.bulletzone.datalayer.account.BankAccount;
 import edu.unh.cs.cs619.bulletzone.datalayer.user.GameUser;
-import edu.unh.cs.cs619.bulletzone.model.Bullet;
-import edu.unh.cs.cs619.bulletzone.model.Direction;
-import edu.unh.cs.cs619.bulletzone.model.FieldHolder;
-import edu.unh.cs.cs619.bulletzone.model.Game;
-import edu.unh.cs.cs619.bulletzone.model.IllegalTransitionException;
-import edu.unh.cs.cs619.bulletzone.model.LimitExceededException;
-import edu.unh.cs.cs619.bulletzone.model.Tank;
-import edu.unh.cs.cs619.bulletzone.model.TankDoesNotExistException;
-import edu.unh.cs.cs619.bulletzone.model.Wall;
 
-import static com.google.common.base.Preconditions.checkNotNull;
-
-/**
- * This class provides tailored access to objects that are needed by the REST API/Controller
- * classes. The idea is that it will interface with a BulletZoneData instance as well as
- * any other objects it needs to answer requests having to do with users, items, accounts,
- * permissions, and other things that are related to what is stored in the database.
- *
- * The convention is that actual objects will be returned by the DataRepository so that internal
- * objects can make effective use of the results as well as the Controllers. This means that
- * all API/Controller classes will need to translate these objects into the strings they need
- * to communicate information back to the caller.
- */
-//Note that the @Component annotation below causes an instance of a DataRepository to be
-//created and used for the Controller classes in the "web" package.
 @Component
 public class DataRepository {
+    private static final Logger logger = LoggerFactory.getLogger(DataRepository.class);
     private BulletZoneData bzdata;
 
     DataRepository() {
-        //TODO: Replace database name, username, and password with what's appropriate for your group
-//        String url = "jdbc:mysql://stman1.cs.unh.edu:3306/cs6190";
-//        String username = "mdp";
-//        String password = "Drag56kes";
-//
-//        bzdata = new BulletZoneData(url, username, password);
-        bzdata = new BulletZoneData(); //just use in-memory database
+        bzdata = new BulletZoneData(); // just use in-memory database
     }
 
-    /**
-     * Stub for a method that would create a user or validate the user. [You don't have
-     * to do it this way--feel free to make other methods if you like!]
-     * @param username Username for the user to create or validate
-     * @param password Password for the user
-     * @param create true if the user should be created, or false otherwise
-     * @return GameUser corresponding to the username/password if successful, null otherwise
-     */
     public GameUser validateUser(String username, String password, boolean create) {
+        GameUser user;
         if (create) {
-            // Create a new user
-            return bzdata.users.createUser(username, username, password);
+            logger.debug("Attempting to create new user: {}", username);
+            // First check if user already exists
+            user = bzdata.users.getUser(username);
+            if (user != null) {
+                logger.debug("User already exists: {}", username);
+                return null; // User already exists
+            }
+
+            // Create new user with a default display name
+            user = bzdata.users.createUser(username, username, password);
+            if (user != null) {
+                logger.debug("Created user with ID: {}", user.getId());
+                // Create bank account with initial balance
+                BankAccount account = bzdata.accounts.create();
+                if (account != null) {
+                    logger.debug("Created bank account for user ID: {}", user.getId());
+                    // Associate account with user - balance is already initialized in BankAccount constructor
+                    account.setOwner(user);
+                    logger.debug("Associated account with user");
+                    return user;
+                } else {
+                    logger.error("Failed to create bank account");
+                }
+            } else {
+                logger.error("Failed to create user");
+            }
+            return null;
         } else {
-            // Validate existing user
-            return bzdata.users.validateLogin(username, password);
+            logger.debug("Attempting to validate login for: {}", username);
+            user = bzdata.users.validateLogin(username, password);
+            if (user != null) {
+                logger.debug("Login successful for user ID: {}", user.getId());
+            } else {
+                logger.debug("Login failed for username: {}", username);
+            }
+            return user;
         }
     }
+
+    public double getUserBalance(long userId) {
+        logger.debug("Getting balance for user ID: {}", userId);
+        // First get the user to verify they exist
+        GameUser user = bzdata.users.getUser((int)userId);
+        if (user == null) {
+            logger.error("User not found for ID: {}", userId);
+            return 0.0;
+        }
+
+        logger.debug("Found user: {}", user.getName());
+
+        // Find account associated with this user
+        for (BankAccount account : bzdata.accounts.getAccounts()) {
+            logger.debug("Checking account with owner: {}",
+                    (account.getOwner() != null ? account.getOwner().getId() : "null"));
+            if (account.getOwner() != null && account.getOwner().getId() == userId) {
+                double balance = account.getBalance();
+                logger.debug("Found account for user with balance: {}", balance);
+                return balance;
+            }
+        }
+
+        logger.debug("No existing account found, creating new one");
+        // If no account exists, create one with initial balance
+        BankAccount newAccount = bzdata.accounts.create();
+        if (newAccount != null) {
+            newAccount.setOwner(user);
+            double balance = newAccount.getBalance();
+            logger.debug("Created new account with balance: {}", balance);
+            return balance;
+        }
+
+        logger.error("Failed to create or find account for user");
+        return 0.0;
+    }
+
+    public boolean deductUserBalance(long userId, double amount) {
+        logger.debug("Deducting {} from user ID: {}", amount, userId);
+        // First get the user to verify they exist
+        GameUser user = bzdata.users.getUser((int)userId);
+        if (user == null) {
+            logger.error("User not found for ID: {}", userId);
+            return false;
+        }
+
+        // Find account associated with this user
+        for (BankAccount account : bzdata.accounts.getAccounts()) {
+            if (account.getOwner() != null && account.getOwner().getId() == userId) {
+                if (account.getBalance() >= amount) {
+                    account.modifyBalance(-amount);
+                    logger.debug("New balance for user {}: {}", userId, account.getBalance());
+                    return true;
+                } else {
+                    logger.error("Insufficient balance for user {}", userId);
+                    return false;
+                }
+            }
+        }
+
+        logger.error("No account found for user {}", userId);
+        return false;
+    }
+
 }

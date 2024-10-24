@@ -1,7 +1,13 @@
 package edu.unh.cs.cs619.bulletzone.model;
 
+import android.util.Log;
+
 import edu.unh.cs.cs619.bulletzone.R;
 
+/**
+ * Extends BoardCell with the specific of the a turnableGoblin / Tank
+ * Holds the rotation, position, and type of this cell
+ */
 public class TurnableGoblin extends TankItem{
     public final int tankType = 1000000;
     private int orientation;
@@ -17,7 +23,7 @@ public class TurnableGoblin extends TankItem{
         int scaleFactor = 1000;
 
         resourceID = R.drawable.small_goblin;
-        orientation = val % 10;
+        orientation = (val % 10) - 4;
         cellType = "Tank";
         tankID = (val - typeVal) / scaleFactor;
     }
@@ -25,6 +31,8 @@ public class TurnableGoblin extends TankItem{
     public int getOrientation() { return orientation; }
 
     @Override
-    public int getRotation() { return 45 * (orientation - 2); }
+    public int getRotation() {
+        Log.d("Orientation: ", String.valueOf(orientation));
+        return 45 * (orientation - 2); }
 
 }

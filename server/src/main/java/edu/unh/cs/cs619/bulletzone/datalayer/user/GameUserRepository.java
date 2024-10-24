@@ -18,7 +18,6 @@ import javax.crypto.SecretKeyFactory;
 import javax.crypto.spec.PBEKeySpec;
 
 import edu.unh.cs.cs619.bulletzone.datalayer.BulletZoneData;
-import edu.unh.cs.cs619.bulletzone.datalayer.account.BankAccount;
 import edu.unh.cs.cs619.bulletzone.datalayer.core.Entity;
 import edu.unh.cs.cs619.bulletzone.datalayer.core.EntityRepository;
 import edu.unh.cs.cs619.bulletzone.datalayer.core.EntityType;
@@ -92,14 +91,6 @@ public class GameUserRepository implements EntityRepository {
             throw new IllegalStateException("Error while creating user!", e);
         }
         System.out.println("New user " + username + " added with ID " + newUser.getId());
-
-        // Add this block to create a bank account for the new user
-        if (newUser != null) {
-            BankAccount newAccount = data.accounts.create();
-            data.permissions.setOwner(newAccount, newUser);
-            System.out.println("Created bank account for user " + username + " with ID " + newAccount.getId() + " and balance " + newAccount.getBalance());
-        }
-
         return newUser;
     }
 
@@ -194,4 +185,5 @@ public class GameUserRepository implements EntityRepository {
             throw new IllegalStateException("Cannot read static info!", e);
         }
     }
+
 }
